@@ -82,13 +82,22 @@
     </div>
   </div>
 </template>
-
 <script setup>
 import { ref, onMounted, computed, onBeforeUnmount, defineEmits } from 'vue';
 import { getQuizQuestionsApi, submitQuizOptions } from '../../services/apiServices';
 
-// Define props and emits
-const props = defineProps(['quizId', 'mediaStream']);
+// Define props with types
+const props = defineProps({
+  quizId: {
+    type: String,
+    required: true
+  },
+  mediaStream: {
+    type: Object,
+    required: true
+  }
+});
+
 const emit = defineEmits(['close']);
 
 // Reactive references
@@ -100,7 +109,7 @@ const currentQuestionIndex = ref(0);
 const mediaRecorder = ref(null);
 const recordedChunks = ref([]);
 const isRecording = ref(false);
-const hoveredOption = ref(null); // For hover effects
+const hoveredOption = ref(null);
 
 // Computed properties
 const currentQuestion = computed(() => questions.value[currentQuestionIndex.value]);
@@ -119,7 +128,7 @@ const fetchQuizQuestions = async () => {
         question: question.question,
         options: question.options
       }));
-      await startVideoRecording(); // Start recording after loading questions
+      await startVideoRecording();
     } else {
       console.error('Unexpected response structure:', quizData);
       alert('Failed to load quiz questions.');
@@ -175,12 +184,11 @@ const stopVideoRecording = () => {
       mediaRecorder.value.onstop = async () => {
         const blob = new Blob(recordedChunks.value, { type: 'video/webm' });
 
-        // Upload video to server (if needed)
         const formData = new FormData();
         formData.append('video', blob, `quiz_recording_${props.quizId}.webm`);
 
         try {
-          const response = await uploadVideo(formData); // Replace with your actual API call
+          const response = await uploadVideo(formData);
           console.log('Video uploaded successfully:', response);
           resolve();
         } catch (error) {
@@ -198,7 +206,6 @@ const stopVideoRecording = () => {
 
 // Function to handle video upload (replace this with actual upload logic)
 const uploadVideo = async (formData) => {
-  // Make API call to upload video
   return await fetch('/api/upload', {
     method: 'POST',
     body: formData
@@ -210,7 +217,6 @@ onBeforeUnmount(() => {
   if (mediaRecorder.value && mediaRecorder.value.state !== 'inactive') {
     mediaRecorder.value.stop();
   }
-  // Stop the mediaStream tracks to release the camera and microphone
   if (props.mediaStream) {
     props.mediaStream.getTracks().forEach(track => track.stop());
   }
@@ -232,7 +238,7 @@ const prevQuestion = () => {
 // Submit quiz function
 const submitQuiz = async () => {
   try {
-    await stopVideoRecording(); // Stop recording and handle the video
+    await stopVideoRecording();
 
     const payload = {
       quiz_id: props.quizId,
@@ -244,7 +250,7 @@ const submitQuiz = async () => {
 
     if (response.message === 'Quiz answers submitted successfully') {
       alert('Your quiz was submitted successfully!');
-      emit('close'); // Notify parent to close the modal
+      emit('close');
     }
   } catch (error) {
     console.error('Failed to submit quiz:', error);
@@ -266,10 +272,11 @@ onMounted(() => {
   } else {
     console.error('Media stream not provided to StartQuiz component.');
     alert('Unable to access media stream.');
-    emit('close'); // Close the modal if no stream is provided
+    emit('close');
   }
 });
 </script>
+
 
 <style scoped>
 /* Enhanced styles for the StartQuiz component */
